@@ -1,13 +1,21 @@
 import pandas as pd
 import re
 from sklearn.feature_extraction.text import CountVectorizer
-
+import tensorflow as tf
+from tensorflow.keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+from tensorflow import keras
+from tensorflow.keras import layers
 
 path = 'dataset\mpst_full_data.csv'
 
 def import_dataset(path):
-    #return pd.read_csv(path, names=['Title', 'Conditions', 'ONCOLOGY'], skiprows=1)
+    # return pd.read_csv(path, names=['Title', 'Conditions', 'ONCOLOGY'], skiprows=1)
     return pd.read_csv(path)
+
+def max_len(x):
+    a=x.split()
+    return len(a)
 
 def make_data_frames(full_df):
 
@@ -110,4 +118,20 @@ vectorizer = CountVectorizer(tokenizer = lambda x: x.split(","), binary='true')
 y_train = vectorizer.fit_transform(train_df['tags']).toarray()
 y_test = vectorizer.transform(test_df['tags']).toarray()
 
-print(y_train)
+print(max(df['plot_synopsis'].apply(max_len)))
+
+vect=Tokenizer()
+vect.fit_on_texts(train_df['plot_synopsis'])
+vocab_size = len(vect.word_index) + 1
+print(vocab_size)
+
+encoded_docs_train = vect.texts_to_sequences(train_df['preprocessed_plots'])
+max_length = vocab_size
+padded_docs_train = pad_sequences(encoded_docs_train, maxlen=1200, padding='post')
+print(padded_docs_train)
+
+encoded_docs_test =  vect.texts_to_sequences(test_df['preprocessed_plots'])
+padded_docs_test = pad_sequences(encoded_docs_test, maxlen=1200, padding='post')
+encoded_docs_cv = vect.texts_to_sequences(val_df['preprocessed_plots'])
+padded_docs_cv = pad_sequences(encoded_docs_cv, maxlen=1200, padding='post')
+
