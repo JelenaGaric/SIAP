@@ -1,13 +1,24 @@
 import pandas as pd
 import re
 from sklearn.feature_extraction.text import CountVectorizer
+import tensorflow as tf
+from tensorflow.keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+from tensorflow import keras
+from tensorflow.keras import layers
+import numpy as numpy
+from collections import Counter
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 path = 'dataset\mpst_full_data.csv'
 
 def import_dataset(path):
-    #return pd.read_csv(path, names=['Title', 'Conditions', 'ONCOLOGY'], skiprows=1)
     return pd.read_csv(path)
+
+def max_len(x):
+    a=x.split()
+    return len(a)
 
 def make_data_frames(full_df):
 
@@ -106,8 +117,122 @@ test_df=test_df.reset_index()
 val_df=df.loc[df.split=="val"]
 val_df=val_df.reset_index()
 
+
+results = set()
+train_df['tags'].str.lower().str.split(",").apply(results.update)
+categories_num = len(results)
+print("Number of categories: ", categories_num)
+
+
+# print(train_df['tags'].toarray())
+
 vectorizer = CountVectorizer(tokenizer = lambda x: x.split(","), binary='true')
 y_train = vectorizer.fit_transform(train_df['tags']).toarray()
 y_test = vectorizer.transform(test_df['tags']).toarray()
 
-print(y_train)
+# print(max(df['plot_synopsis'].apply(max_len)))
+
+vect=Tokenizer()
+vect.fit_on_texts(train_df['plot_synopsis'])
+vocab_size = len(vect.word_index) + 1
+# print(vocab_size)
+
+encoded_docs_train = vect.texts_to_sequences(train_df['preprocessed_plots'])
+max_length = vocab_size
+padded_docs_train = pad_sequences(encoded_docs_train, maxlen=1200, padding='post')
+#print(padded_docs_train)
+
+encoded_docs_test =  vect.texts_to_sequences(test_df['preprocessed_plots'])
+padded_docs_test = pad_sequences(encoded_docs_test, maxlen=1200, padding='post')
+encoded_docs_cv = vect.texts_to_sequences(val_df['preprocessed_plots'])
+padded_docs_cv = pad_sequences(encoded_docs_cv, maxlen=1200, padding='post')
+
+def create_model():
+    model = keras.Sequential()
+    # Configuring the parameters
+    model.add(layers.Embedding(vocab_size, output_dim=50, input_length=1200))
+    model.add(layers.LSTM(128, return_sequences=True))
+    # Adding a dropout layer
+    model.add(layers.Dropout(0.5))
+    model.add(layers.LSTM(64))
+    model.add(layers.Dropout(0.5))
+    # Adding a dense output layer with sigmoid activation
+    model.add(layers.Dense(categories_num, activation='sigmoid'))
+
+    print(model.summary())
+
+    METRICS = [
+
+        keras.metrics.TruePositives(name='tp'),
+        keras.metrics.FalsePositives(name='fp'),
+        keras.metrics.TrueNegatives(name='tn'),
+        keras.metrics.FalseNegatives(name='fn'),
+        keras.metrics.BinaryAccuracy(name='accuracy'),
+        keras.metrics.Precision(name='precision'),
+        keras.metrics.Recall(name='recall'),
+        keras.metrics.AUC(name='auc'),
+    ]
+
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=METRICS)
+    return model
+
+def train(model):
+    history = model.fit(padded_docs_train, y_train,
+                        epochs=10,
+                        verbose=1,
+                        validation_data=(padded_docs_test, y_test),
+                        batch_size=16)
+
+    model.save('model')
+
+try:
+    reconstructed_model = keras.models.load_model("model")
+    model = reconstructed_model
+    print("Loaded model.")
+except:
+    print("No model saved. Training a new one.")
+    model = create_model();
+    train(model)
+
+predictions = model.predict([padded_docs_test])
+thresholds = [0.1, 0.2, 0.3, 0.4]# ,0.5, 0.6, 0.7, 0.8, 0.9]
+
+for val in thresholds:
+    print("For threshold: ", val)
+    pred = predictions.copy()
+
+    pred[pred >= val] = 1
+    pred[pred < val] = 0
+
+    precision = precision_score(y_test, pred, average='micro')
+    recall = recall_score(y_test, pred, average='micro')
+    f1 = f1_score(y_test, pred, average='micro')
+
+    print("Micro-average quality numbers")
+    print("Precision: {:.4f}, Recall: {:.4f}, F1-measure: {:.4f}".format(precision, recall, f1))
+
+def predict_sample():
+    t = train_df.sample(1)
+    encoded_docs = vect.texts_to_sequences(t['preprocessed_plots'])
+    padded_docs = pad_sequences(encoded_docs, maxlen=1200, padding='post')
+    pred = model.predict(padded_docs).tolist()
+
+    for i in range(len(vectorizer.inverse_transform(pred[0])[0])):
+        print(pred[0][i], "-->", vectorizer.inverse_transform(pred[0])[0][i])
+
+    for i in range(len(pred[0])):
+        if (pred[0][i] < 0.1):
+            pred[0][i] = 0
+        else:
+            pred[0][i] = 1
+
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_colwidth', None)
+
+    print("Movie title -->", t['title'].values)
+    print("Synopsis -->", t['plot_synopsis'].values)
+    print("Original tags -->", t['tags'].values)
+    print("Predicted tags -->", vectorizer.inverse_transform(pred[0])[0])
+
+
+predict_sample()
