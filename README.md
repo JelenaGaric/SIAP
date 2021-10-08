@@ -1,5 +1,9 @@
 # SIAP
 
+
+https://drive.google.com/file/d/1-_j971xlembnvJYoDhNHfbv1rzIlIrT5/view?usp=sharing
+
+
 Predlog projekta iz predmeta Sistemi za istraživanje i analizu podataka
 Uvod
 Ovaj dokument sadrži kratak opis onoga što je tema i definicija projekta iz predmeta Sistemi za istraživanje i analizu podataka. Prikazana je motivacija za odabranu temu, zatim je dat kratak pregled dva relevantna naučna rada, kao i skup podataka koji će se koristiti u izradi projekta. Zatim je opisan metod evoluacije i naveden softver koji će se koristiti. Na kraju je prikazan plan izrade projekta.
@@ -42,9 +46,13 @@ kaggle datasets download -d cryptexcode/mpst-movie-plot-synopses-with-tags . Ova
     6. synopsis_source (odakle je prikupljen rezime filma)
 
 Softver
+
+
 Za izradu projekta planirano je koristiti Python programski jezik i scikit-learn biblioteku.
 
 Metodologija
+
+
 U skupu podataka bitno nam je polje koje se odnosi na rezime filma, i taj tekst treba da se pripremi za ulaz u neuronsku mrežu. Ovo podrazumeva primenu pretprocesiranja teksta kao što je izbacivanje znakova interpunkcije i lematizacija reči odnosno njeno prebacivanje u zajednički oblik. Zatim će se raditi TF-IDF nad tekstom, odnosno dodela važnosti svakoj reči u odnosu na jedan primerak dokumenta (rezimea) u kolekciji dokumenata (korpusu). Zbog toga se planira odraditi klasifikacija i klasičnim algoritmima poput SVM, Naive Bayes-a i Random Forest-a. Ukoliko bude potrebe zbog neuronske mreže, radiće se i tokenizacija teksta.
 Korpus ce se obraditi putem BERT i ELMO algoritmama za reprezentaciju reči.
 Neuronsku mrežu će sigurno činiti konvolutivna mreža, ali ako ona ne bude pokazivala dovoljno dobre rezultate, model će se spojiti sa rekurentnom mrežom, kao što je navedeno u radu Combination of Convolutional and Recurrent Neural Network for Sentiment Analysis of Short Texts [3]. Konvolutivna mreža je dobra u izvlačenju lokalnih i dubokih karakteristika teksta, dok su rekurentne mreže vremenski-rekurzivne i mogu da nauče dugoročne zavisnosti u sekvencijalnim podacima (npr. udaljene reči koje ukazuju jedne na druge).
@@ -52,6 +60,8 @@ Neuronsku mrežu će sigurno činiti konvolutivna mreža, ali ako ona ne bude po
 Izlaz iz mreže je vektor svih postojećih žanrova u našem skupu podataka (podatak koji se nalazi u tags polju) sa skalarom koji određuje verovatnoću te klase za dati primerak. Skup podataka biće podeljen na obučavajući i validacioni skup (odnos 80:20), te će se mreža obučavati na obučavajućem skupu, a evaluacija tačnosti modela izvršiće se na validacionom skupu. Za test podatke ćemo uzeti neke skupove rezimea sa IMDB sajta koji se ne nalazi u postojećem skupu podataka i pustićemo da model izvrši predikciju, te ćemo gledati meru poklapanja sa stvarnim žanrovima filmova tih rezimea.
 
 Plan izrade projekta
+
+
 Realizacija projekta bi trebala da sadrži sledeće  bitne tačke:
     • Prikupljanje podataka
     •  Transformacija podataka
@@ -59,6 +69,8 @@ Realizacija projekta bi trebala da sadrži sledeće  bitne tačke:
     •   Analiza dobijenih rezultata
  
 Članovi tima
+
+
     • Jelena Garić
     • Ana Tomić
     • Jovan Jovkić
